@@ -1,52 +1,38 @@
 package com.example.sensorcsv
 
-import android.hardware.HardwareBuffer
 import android.hardware.Sensor
-import android.hardware.SensorDirectChannel
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
-import android.os.Environment
-import android.util.Log
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.example.sensorcsv.ui.theme.SensorCSVTheme
+import java.io.BufferedWriter
 import java.io.File
+import java.io.FileWriter
+import java.lang.System.currentTimeMillis
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity(), SensorEventListener {
-	companion object {
-		init {
-			System.loadLibrary("sensorcsv")
-		}
-	}
-	private external fun startNativeCsvRecording(buffer: HardwareBuffer, path: String)
-	private external fun stopNativeCsvRecording()
-
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
 
-    private var accelState by mutableStateOf(Triple(0f, 0f, 0f))
-    private var lastTimestamp by mutableLongStateOf(0)
-    private var period = 0L
+    private var acc by mutableStateOf(Triple(0f, 0f, 0f))
+    private var prevTimestamp by mutableLongStateOf(0L)
+    private var actualPeriod = 1L
 
-	// hardware buffer only if supported
-	private var directChannel: SensorDirectChannel? = null
-	private var hardwareBuffer: HardwareBuffer? = null
-	//private var memoryFile: MemoryFile? = null
 	private var isRecording by mutableStateOf(false)
+	private var file: File? = null
+	private var writer: BufferedWriter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,92 +40,71 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        val isMemoryFileSupported = accelerometer?.isDirectChannelTypeSupported(SensorDirectChannel.TYPE_MEMORY_FILE)
-        val isHardwareBufferSupported = accelerometer?.isDirectChannelTypeSupported(SensorDirectChannel.TYPE_HARDWARE_BUFFER)
 
         setContent {
             SensorCSVTheme() {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Accelerometer (m/s²)")
-                    Text("X: ${accelState.first}")
-                    Text("Y: ${accelState.second}")
-                    Text("Z: ${accelState.third}")
-                    Text("hertz: ${1000000000/period}")
-                    Text("milliseconds: ${period/1000000}")
-                    Text("microseconds: ${period/1000}")
-					HorizontalDivider()
-                    Text("MemoryFile: $isMemoryFileSupported")
-                    Text("HardwareBuffer: $isHardwareBufferSupported")
-					HorizontalDivider()
-					if(isHardwareBufferSupported == true) {
-						Text("CSV Recorder using Hardware Buffer")
-						Button( onClick = {
-							if (isRecording) {
-								stopDirectChannelRecording()
-							} else {
-								startDirectChannelRecording()
-							}
-						}) {
-							Text(if (isRecording) "Stop Recording" else "Start Recording")
-						}
-					}
-				}
+				val config = mutableStateOf(InjectionConfiguration())
+				MainScreen(
+					configuration = config,
+            		actualPeriod = actualPeriod,
+					startRecording = { start(config.value) },
+					stopRecording = { stop() },
+					isRecording = isRecording
+            	)
             }
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        val sensor = accelerometer ?: return
-        sensorManager.registerListener(
-            this,
-            sensor,
-            SensorManager.SENSOR_DELAY_FASTEST
-        )
+	fun start(config: InjectionConfiguration) {
+		val date = SimpleDateFormat("MM/dd-HH:mm", Locale.getDefault()).format(Date())
+
+		val sensor = accelerometer ?: return
+		sensorManager.registerListener(
+			this,
+			sensor,
+			config.sensorDelay
+		)
+
+		val fileName = "${date}_$config.csv"
+		file = File(applicationContext.getExternalFilesDir(null), fileName)
+
+		writer = BufferedWriter(FileWriter(file, true))
+		writer?.write("# ${config.magnitude}\n")
+		writer?.write("# ${config.injectionFrequency}\n")
+		writer?.write("# ${config.sensorDelay}\n")
+		writer?.write("# ${config.iteration}\n")
+		writer?.write("timestamp,ax,ay,az\n")
+		isRecording = true
 	}
 
-    override fun onPause() {
-        super.onPause()
-		sensorManager.unregisterListener(this)
-    }
+	fun stop() {
+		writer?.flush()
+		writer?.close()
+		isRecording = false
+	}
 
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-            accelState = Triple(
+            acc = Triple(
                 event.values[0],
                 event.values[1],
                 event.values[2]
             )
-            period = event.timestamp - lastTimestamp
-            lastTimestamp = event.timestamp
+			val ts = currentTimeMillis() + (SystemClock.elapsedRealtimeNanos() - event.timestamp)/1000000
+			writer?.write("$ts,${acc.first},${acc.second},${acc.third}\n")
+
+			actualPeriod = event.timestamp - prevTimestamp
+			prevTimestamp = event.timestamp
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-
-	private fun startDirectChannelRecording() {
-		hardwareBuffer = HardwareBuffer.create(8192, 1, HardwareBuffer.BLOB, 1, HardwareBuffer.USAGE_SENSOR_DIRECT_DATA)
-		directChannel = sensorManager.createDirectChannel(hardwareBuffer)
-		directChannel!!.configure(
-			accelerometer,
-			SensorDirectChannel.RATE_VERY_FAST
-		)
-		val downloadsPath = this.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)?.path
-		val csvPath = "$downloadsPath/recorded_data.csv"
-		Log.d("marco", "csvPath: $csvPath")
-		startNativeCsvRecording(hardwareBuffer!!, csvPath)
-		isRecording = true
+	override fun onResume() {
+		super.onResume()
 	}
 
-	private fun stopDirectChannelRecording() {
-		accelerometer?.let {
-			directChannel?.configure(it, SensorDirectChannel.RATE_STOP)
-		}
-		directChannel?.close()
-		hardwareBuffer?.close()
-		directChannel = null
-		hardwareBuffer = null
-		stopNativeCsvRecording()
-		isRecording = false
+	override fun onPause() {
+		super.onPause()
 	}
+
+	override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
