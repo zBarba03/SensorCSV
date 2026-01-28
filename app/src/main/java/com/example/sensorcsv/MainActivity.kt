@@ -6,6 +6,8 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
 import android.os.SystemClock
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -26,13 +28,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
 
-    private var acc by mutableStateOf(Triple(0f, 0f, 0f))
     private var prevTimestamp by mutableLongStateOf(0L)
-    private var actualPeriod = 1L
+    private var actualPeriod by mutableLongStateOf(0L)
 
+	private var config by mutableStateOf(InjectionConfiguration())
 	private var isRecording by mutableStateOf(false)
 	private var file: File? = null
-	private var writer: BufferedWriter? = null
+	private var writer: FileWriter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,22 +43,27 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
+		config.iteration = countRecords()
+
         setContent {
             SensorCSVTheme() {
-				val config = mutableStateOf(InjectionConfiguration())
 				MainScreen(
 					configuration = config,
+            		onChange = {
+						config = it
+						config.iteration = countRecords()
+					},
             		actualPeriod = actualPeriod,
-					startRecording = { start(config.value) },
+					startRecording = { start() },
 					stopRecording = { stop() },
+					cancelRecording = { stop(abort = true) },
 					isRecording = isRecording
             	)
             }
         }
     }
 
-	fun start(config: InjectionConfiguration) {
-		val date = SimpleDateFormat("MM/dd-HH:mm", Locale.getDefault()).format(Date())
+	fun start() {
 
 		val sensor = accelerometer ?: return
 		sensorManager.registerListener(
@@ -65,33 +72,59 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 			config.sensorDelay
 		)
 
-		val fileName = "${date}_$config.csv"
-		file = File(applicationContext.getExternalFilesDir(null), fileName)
+		file = File(applicationContext.getExternalFilesDir(null), config.toFileName())
 
-		writer = BufferedWriter(FileWriter(file, true))
+		val isCreatedNow = file?.createNewFile()
+		if(isCreatedNow == false) {
+			Log.e("MainActivity", "Error: File already exists")
+			Toast.makeText(this, "Error: File already exists", Toast.LENGTH_SHORT).show()
+			return
+		}
+
+		writer = FileWriter(file)
 		writer?.write("# ${config.magnitude}\n")
 		writer?.write("# ${config.injectionFrequency}\n")
 		writer?.write("# ${config.sensorDelay}\n")
+		writer?.write("# recv\n")
 		writer?.write("# ${config.iteration}\n")
 		writer?.write("timestamp,ax,ay,az\n")
 		isRecording = true
 	}
 
-	fun stop() {
+	fun stop(abort: Boolean = false) {
+		sensorManager.unregisterListener(this)
+		//actualPeriod = 0L
+
 		writer?.flush()
 		writer?.close()
+		writer = null
 		isRecording = false
+		if(abort) {
+			file?.delete()
+		}else{
+			config.iteration++
+			// upload file to firebase storage?
+		}
+		file = null
+	}
+
+	fun countRecords(): Int {
+		val dir = applicationContext.getExternalFilesDir(null) ?: return 0
+		val files = dir.listFiles() ?: return 0
+
+		Log.d("MainActivity", "countRecords: ${files.count()}")
+		return files.count {
+			Log.d("MainActivity", "file: ${it.name}")
+			it.name.startsWith(config.toString())
+		}
 	}
 
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-            acc = Triple(
-                event.values[0],
-                event.values[1],
-                event.values[2]
-            )
-			val ts = currentTimeMillis() + (SystemClock.elapsedRealtimeNanos() - event.timestamp)/1000000
-			writer?.write("$ts,${acc.first},${acc.second},${acc.third}\n")
+
+			val ts = currentTimeMillis() - (SystemClock.elapsedRealtimeNanos() - event.timestamp)/1000000
+
+			writer?.write("$ts,${event.values[0]},${event.values[1]},${event.values[2]}\n")
 
 			actualPeriod = event.timestamp - prevTimestamp
 			prevTimestamp = event.timestamp
@@ -100,6 +133,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
 	override fun onResume() {
 		super.onResume()
+		Toast.makeText(this, "Application had paused", Toast.LENGTH_SHORT).show()
 	}
 
 	override fun onPause() {

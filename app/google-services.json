@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "948534900800",
+    "firebase_url": "https://pedometercorrection-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "pedometercorrection",
+    "storage_bucket": "pedometercorrection.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:948534900800:android:b804e6c06f4da023e647a5",
+        "android_client_info": {
+          "package_name": "com.example.sensorcsv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO0fhK9e9yIcaikd3QmVLnOTsuYvpGt3w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:948534900800:android:2fd6c5d1e927fb8fe647a5",
+        "android_client_info": {
+          "package_name": "com.pedometers.motiontracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO0fhK9e9yIcaikd3QmVLnOTsuYvpGt3w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
