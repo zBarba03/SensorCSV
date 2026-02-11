@@ -5,6 +5,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.os.Debug
 import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
@@ -41,7 +42,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         enableEdgeToEdge()
 
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+		accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
+		//resetRecords(fromA, toB)
 
 		config.iteration = countRecords()
 
@@ -64,7 +67,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
 	fun start() {
-
 		val sensor = accelerometer ?: return
 		sensorManager.registerListener(
 			this,
@@ -74,12 +76,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
 		file = File(applicationContext.getExternalFilesDir(null), config.toFileName())
 
-		val isCreatedNow = file?.createNewFile()
-		if(isCreatedNow == false) {
-			Log.e("MainActivity", "Error: File already exists")
-			Toast.makeText(this, "Error: File already exists", Toast.LENGTH_SHORT).show()
-			return
-		}
+		file!!.createNewFile()
 
 		writer = FileWriter(file)
 		writer?.write("# ${config.magnitude}\n")
@@ -112,10 +109,32 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 		val dir = applicationContext.getExternalFilesDir(null) ?: return 0
 		val files = dir.listFiles() ?: return 0
 
-		Log.d("MainActivity", "countRecords: ${files.count()}")
 		return files.count {
-			Log.d("MainActivity", "file: ${it.name}")
 			it.name.startsWith(config.toString())
+		}
+	}
+
+	fun resetRecords(start: Int, end: Int){
+		val dir = applicationContext.getExternalFilesDir(null) ?: return
+		val files = dir.listFiles() ?: return
+
+
+		for (m in Magnitudes) {
+			for (f in InjectionFrequencies) {
+				for (d in SensorDelays) {
+					val tmp = InjectionConfiguration(m,f,d)
+					for (file in files){
+						for (i in start..end){
+							if(file.name.startsWith(
+								tmp.toString() + "_" + i + "_"
+							)) {
+								Log.w("deleted", file.name)
+								file.delete()
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -133,7 +152,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
 	override fun onResume() {
 		super.onResume()
-		Toast.makeText(this, "Application had paused", Toast.LENGTH_SHORT).show()
+		Toast.makeText(this, "Application had paused", Toast.LENGTH_LONG).show()
 	}
 
 	override fun onPause() {
