@@ -79,11 +79,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 		file!!.createNewFile()
 
 		writer = FileWriter(file)
-		writer?.write("# ${config.magnitude}\n")
-		writer?.write("# ${config.injectionFrequency}\n")
-		writer?.write("# ${config.sensorDelay}\n")
-		writer?.write("# recv\n")
-		writer?.write("# ${config.iteration}\n")
 		writer?.write("timestamp,ax,ay,az\n")
 		isRecording = true
 	}
@@ -122,7 +117,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 		for (m in Magnitudes) {
 			for (f in InjectionFrequencies) {
 				for (d in SensorDelays) {
-					val tmp = InjectionConfiguration(m,f,d)
+					val tmp = InjectionConfiguration(magnitude = m, injectionFrequency = f, sensorDelay = d)
 					for (file in files){
 						for (i in start..end){
 							if(file.name.startsWith(

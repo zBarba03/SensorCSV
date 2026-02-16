@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ReportFragment
 
 @Composable
 fun MainScreen(
@@ -36,53 +37,53 @@ fun MainScreen(
 			FlowChoiceGroup(
 				options = Origins,
 				selected = configuration.origin,
-				onClick = {
-					if (it == "real") {
-						onChange(
-							configuration.copy(
-								origin = it,
-								magnitude = "Walk",
-								injectionFrequency = 0
-							)
-						)
-					} else {
-						onChange(
-							configuration.copy(
-								origin = it,
-								magnitude = Magnitudes[0],
-								injectionFrequency = InjectionFrequencies[0]
-							)
-						)
-					}
-				},
-				label = "Modalità di uso:",
-				getLabel = { if (it == "recv") "Iniezione" else "Camminata" }
+				onClick = { onChange(configuration.copy(origin = it)) },
+				label = "Modalità d'uso:",
+				getLabel = { if (it.startsWith("recv")) "Iniezione" else "Camminata" }
 			)
-
-			//HorizontalDivider()
-			Text(
-				"Injection parameters",
-				color = MaterialTheme.colorScheme.onBackground,
-				style = MaterialTheme.typography.headlineMedium,
-				modifier = Modifier.padding(16.dp)
-			)
-			FlowChoiceGroup(
-				options = Magnitudes,
-				selected = configuration.magnitude,
-				onClick = { onChange(configuration.copy(magnitude = it)) },
-				label = "Magnitude of acceleration:",
-				enabled = configuration.origin == "recv"
-			)
-			FlowChoiceGroup(
-				options = InjectionFrequencies,
-				selected = configuration.injectionFrequency,
-				onClick = { onChange(configuration.copy(injectionFrequency = it)) },
-				label = "Frequency:",
-				getLabel = { "${it}Hz" },
-				enabled = configuration.origin == "recv"
-			)
-
-			//HorizontalDivider()
+			if(configuration.origin.startsWith("recv")) {
+				Text(
+					"Injection parameters",
+					color = MaterialTheme.colorScheme.onBackground,
+					style = MaterialTheme.typography.headlineMedium,
+					modifier = Modifier.padding(16.dp)
+				)
+				FlowChoiceGroup(
+					options = Magnitudes,
+					selected = configuration.magnitude,
+					onClick = { onChange(configuration.copy(magnitude = it)) },
+					label = "Magnitude of acceleration:",
+					enabled = configuration.origin == "recv"
+				)
+				FlowChoiceGroup(
+					options = InjectionFrequencies,
+					selected = configuration.injectionFrequency,
+					onClick = { onChange(configuration.copy(injectionFrequency = it)) },
+					label = "Frequency:",
+					getLabel = { "${it}Hz" }
+				)
+			}else if(configuration.origin.startsWith("real")) {
+				Text(
+					"Parametri della camminata",
+					color = MaterialTheme.colorScheme.onBackground,
+					style = MaterialTheme.typography.headlineMedium,
+					modifier = Modifier.padding(16.dp)
+				)
+				FlowChoiceGroup(
+					options = Activities,
+					selected = configuration.activity,
+					onClick = { onChange(configuration.copy(activity = it)) },
+					label = "Tipo di attività:",
+					getLabel = { activityToString(it) }
+				)
+				FlowChoiceGroup(
+					options = Positions,
+					selected = configuration.position,
+					onClick = { onChange(configuration.copy(position = it)) },
+					label = "Posizione del telefono:",
+					getLabel = { positionToString(it) }
+				)
+			}
 			Text(
 				"Android parameters",
 				style = MaterialTheme.typography.headlineMedium,

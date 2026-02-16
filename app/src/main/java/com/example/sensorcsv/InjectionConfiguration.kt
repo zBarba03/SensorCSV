@@ -1,16 +1,24 @@
 package com.example.sensorcsv
 
 import android.hardware.SensorManager
+import android.os.Build
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+
+val Origins = listOf("recv", "real")
+
 val Magnitudes = listOf("Lower", "Normal", "Higher")
 val InjectionFrequencies = listOf(50, 100, 200, 500, 1000, 10000)
 val SensorDelays = listOf(SensorManager.SENSOR_DELAY_GAME, SensorManager.SENSOR_DELAY_FASTEST)
-val Origins = listOf("recv", "real")
+
+val Activities = listOf("Walk", "Run", "Downhill", "Uphill", "Irregular", "Baby")
+val Positions = listOf("Shoulder", "Hand", "Pocket")
 
 data class InjectionConfiguration(
+	var activity: String = Activities[0],
+	var position: String = Positions[0],
 	var magnitude: String = Magnitudes[1],
 	var injectionFrequency: Int = InjectionFrequencies[2],
 	var sensorDelay: Int = SensorDelays[1],
@@ -19,7 +27,12 @@ data class InjectionConfiguration(
 ){
 	override fun toString(): String {
 		val sensorDelayString = if (sensorDelay==SensorManager.SENSOR_DELAY_GAME) "DELAY-GAME" else "DELAY-FASTEST"
-		return "${magnitude}_${injectionFrequency}_${sensorDelayString}_${origin}"
+		val delayNewString = if (sensorDelay==SensorManager.SENSOR_DELAY_GAME) "Game" else "Fastest"
+
+
+		return if(origin.startsWith("recv"))
+			"${magnitude}_${injectionFrequency}_${sensorDelayString}_${origin}"
+		else "${activity}_${position}_${delayNewString}_real${Build.MODEL}"
 
 		// "recv" => receiving the injection
 		// injection script will save files with "send" instead
@@ -34,5 +47,26 @@ data class InjectionConfiguration(
 	fun toFileName(): String {
 		val time = SimpleDateFormat("MMMddHHmm", Locale.ENGLISH).format(Date())
 		return toString() + "_${iteration}_${time}.csv"
+	}
+}
+
+fun activityToString(act: String): String{
+	return when (act) {
+		"Walk" -> "Camminata normale"
+		"Run" -> "Corsa"
+		"Downhill" -> "Discesa"
+		"Uphill" -> "Salita"
+		"Irregular" -> "Passi irregolari"
+		"Baby" -> "Piccoli passi"
+		else -> act
+	}
+}
+
+fun positionToString(pos: String): String{
+	return when (pos) {
+		"Shoulder" -> "Sulle spalle"
+		"Hand" -> "In mano"
+		"Pocket" -> "In tasca"
+		else -> pos
 	}
 }
