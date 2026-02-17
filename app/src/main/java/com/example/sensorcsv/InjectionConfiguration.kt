@@ -6,7 +6,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-
 val Origins = listOf("recv", "real")
 
 val Magnitudes = listOf("Lower", "Normal", "Higher")
@@ -29,7 +28,6 @@ data class InjectionConfiguration(
 		val sensorDelayString = if (sensorDelay==SensorManager.SENSOR_DELAY_GAME) "DELAY-GAME" else "DELAY-FASTEST"
 		val delayNewString = if (sensorDelay==SensorManager.SENSOR_DELAY_GAME) "Game" else "Fastest"
 
-
 		return if(origin.startsWith("recv"))
 			"${magnitude}_${injectionFrequency}_${sensorDelayString}_${origin}"
 		else "${activity}_${position}_${delayNewString}_real${Build.MODEL}"
@@ -45,28 +43,28 @@ data class InjectionConfiguration(
 	}
 
 	fun toFileName(): String {
-		val time = SimpleDateFormat("MMMddHHmm", Locale.ENGLISH).format(Date())
-		return toString() + "_${iteration}_${time}.csv"
+		val date = SimpleDateFormat("MMMdd-HH:mm", Locale.ENGLISH).format(Date())
+		return toString() + "_${iteration}_${date}.csv"
 	}
 }
 
 fun activityToString(act: String): String{
 	return when (act) {
-		"Walk" -> "Camminata normale"
-		"Run" -> "Corsa"
-		"Downhill" -> "Discesa"
-		"Uphill" -> "Salita"
-		"Irregular" -> "Passi irregolari"
-		"Baby" -> "Piccoli passi"
+		"Walk" -> "Plain walking"
+		"Irregular" -> "Irregular steps"
+		"Baby" -> "Baby steps"
 		else -> act
 	}
 }
 
 fun positionToString(pos: String): String{
+	return pos
+	/*
 	return when (pos) {
 		"Shoulder" -> "Sulle spalle"
 		"Hand" -> "In mano"
 		"Pocket" -> "In tasca"
 		else -> pos
 	}
+	*/
 }

@@ -38,8 +38,8 @@ fun MainScreen(
 				options = Origins,
 				selected = configuration.origin,
 				onClick = { onChange(configuration.copy(origin = it)) },
-				label = "Modalità d'uso:",
-				getLabel = { if (it.startsWith("recv")) "Iniezione" else "Camminata" }
+				label = "Usage Mode:",
+				getLabel = { if (it.startsWith("recv")) "Injection" else "Walk recording" }
 			)
 			if(configuration.origin.startsWith("recv")) {
 				Text(
@@ -64,7 +64,7 @@ fun MainScreen(
 				)
 			}else if(configuration.origin.startsWith("real")) {
 				Text(
-					"Parametri della camminata",
+					"Walk parameters",
 					color = MaterialTheme.colorScheme.onBackground,
 					style = MaterialTheme.typography.headlineMedium,
 					modifier = Modifier.padding(16.dp)
@@ -73,14 +73,14 @@ fun MainScreen(
 					options = Activities,
 					selected = configuration.activity,
 					onClick = { onChange(configuration.copy(activity = it)) },
-					label = "Tipo di attività:",
+					label = "Type of activity:",
 					getLabel = { activityToString(it) }
 				)
 				FlowChoiceGroup(
 					options = Positions,
 					selected = configuration.position,
 					onClick = { onChange(configuration.copy(position = it)) },
-					label = "Posizione del telefono:",
+					label = "Phone position:",
 					getLabel = { positionToString(it) }
 				)
 			}
