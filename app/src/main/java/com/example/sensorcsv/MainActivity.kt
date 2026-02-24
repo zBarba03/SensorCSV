@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 		file!!.createNewFile()
 
 		writer = FileWriter(file)
-		writer?.write("timestamp,ax,ay,az\n")
+		writer?.write("timestamp,ax,ay,az,nano\n")
 		isRecording = true
 	}
 
@@ -132,13 +132,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 			}
 		}
 	}
-
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
 
 			val ts = currentTimeMillis() - (SystemClock.elapsedRealtimeNanos() - event.timestamp)/1000000
 
-			writer?.write("$ts,${event.values[0]},${event.values[1]},${event.values[2]}\n")
+			writer?.write("$ts,${event.values[0]},${event.values[1]},${event.values[2]},${event.timestamp}\n")
 
 			actualPeriod = event.timestamp - prevTimestamp
 			prevTimestamp = event.timestamp

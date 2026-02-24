@@ -60,7 +60,7 @@ fun MainScreen(
 					selected = configuration.injectionFrequency,
 					onClick = { onChange(configuration.copy(injectionFrequency = it)) },
 					label = "Frequency:",
-					getLabel = { "${it}Hz" }
+					getLabel = { if (it==0) "maxHz" else "${it}Hz" }
 				)
 			}else if(configuration.origin.startsWith("real")) {
 				Text(
@@ -95,8 +95,8 @@ fun MainScreen(
 				onClick = { onChange(configuration.copy(sensorDelay = it)) },
 				label = "Sensor Sampling Delay:",
 				getLabel = {
-					if (it == SensorManager.SENSOR_DELAY_GAME) "DELAY-GAME"
-					else "DELAY-FASTEST"
+					if (it == SensorManager.SENSOR_DELAY_GAME) "Game"
+					else "Fastest"
 				}
 			)
 

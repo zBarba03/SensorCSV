@@ -9,7 +9,7 @@ import java.util.Locale
 val Origins = listOf("recv", "real")
 
 val Magnitudes = listOf("Lower", "Normal", "Higher")
-val InjectionFrequencies = listOf(50, 100, 200, 500, 1000, 10000)
+val InjectionFrequencies = listOf(50, 100, 200, 500, 1000, 0)
 val SensorDelays = listOf(SensorManager.SENSOR_DELAY_GAME, SensorManager.SENSOR_DELAY_FASTEST)
 
 val Activities = listOf("Walk", "Run", "Downhill", "Uphill", "Irregular", "Baby")
@@ -25,12 +25,12 @@ data class InjectionConfiguration(
 	var iteration: Int = 0,
 ){
 	override fun toString(): String {
-		val sensorDelayString = if (sensorDelay==SensorManager.SENSOR_DELAY_GAME) "DELAY-GAME" else "DELAY-FASTEST"
+		//val sensorDelayString = if (sensorDelay==SensorManager.SENSOR_DELAY_GAME) "DELAY-GAME" else "DELAY-FASTEST"
 		val delayNewString = if (sensorDelay==SensorManager.SENSOR_DELAY_GAME) "Game" else "Fastest"
 
 		return if(origin.startsWith("recv"))
-			"${magnitude}_${injectionFrequency}_${sensorDelayString}_${origin}"
-		else "${activity}_${position}_${delayNewString}_real${Build.MODEL}"
+			"${magnitude}_${injectionFrequency}_${delayNewString}_${origin}"
+		else "${activity}_${position}_${delayNewString}_${origin}${Build.MODEL}"
 
 		// "recv" => receiving the injection
 		// injection script will save files with "send" instead
@@ -38,13 +38,11 @@ data class InjectionConfiguration(
 		// these will be changed to "recv1" and "send1"
 
 		// "real" => recording a real walk
-		// magnitude = "Walk"
-		// injectionFrequency = 0
 	}
 
 	fun toFileName(): String {
 		val date = SimpleDateFormat("MMMdd-HH:mm", Locale.ENGLISH).format(Date())
-		return toString() + "_${iteration}_${date}.csv"
+		return this.toString() + "_${iteration}_${date}.csv"
 	}
 }
 
